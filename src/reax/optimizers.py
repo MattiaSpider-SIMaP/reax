@@ -63,6 +63,7 @@ class Optimizer(equinox.Module):
     )
         module.set_parameters(new_params)
         count = getattr(new_state, "gradient_step", self.update_count + 1)
+        
         return type(self)(self.optimizer, new_state, count=count)
 
 
@@ -70,11 +71,6 @@ class Optimizer(equinox.Module):
 def _update(optimizer: optax.GradientTransformation, state, grad: dict, params, value: float | None = None):
     """Jax jitted function that performs an optimizer update based on the passed gradients and
     parameters."""
-
-    # if value is not None:
-    #     updates, new_state = optimizer.update(grad, state, params=params, value=value)
-    # else:
-    #     updates, new_state = optimizer.update(grad, state, params=params)
 
     updates, new_state = optimizer.update(grad, state, params=params, value=value)
     params = optax.apply_updates(params, updates)

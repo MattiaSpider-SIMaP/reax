@@ -144,7 +144,6 @@ class Train(stages.EpochStage):
                 _loss, grad = res
             opt = self._optimizers[0]
             self._module.on_before_optimizer_step(opt, grad)
-            # opt = opt.update_module(self._module, grad)
 
             opt = opt.update_module(self._module, grad, value=_loss)
             self._optimizers = [opt]

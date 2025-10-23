@@ -36,9 +36,16 @@ class Optimizer(equinox.Module):
         self.state = state
         self.update_count = count
 
-
     @equinox.filter_jit
-    def update(self, params: optax.Params, grad: jt.PyTree, value: float | None = None) -> tuple[Any, "Optimizer"]:
+    def update(
+        self, params: optax.Params, grad: jt.PyTree, value: float | None = None
+    ) -> tuple[Any, "Optimizer"]:
+        """Return an updated version of the passed parameters using the passed gradients.
+
+        :return: A tuple of the updated parameters and an instance of this optimizer
+        updated with the new state.
+        :rtype: tuple[Any, "Optimizer"]
+        """
         extra_args = {"value": value} if value is not None else {}
         updates, new_state = self.optimizer.update(
             grad, self.state, params=params, extra_args=extra_args
@@ -48,33 +55,33 @@ class Optimizer(equinox.Module):
         count = getattr(new_state, "gradient_step", self.update_count + 1)
         return params, type(self)(self.optimizer, new_state, count=count)
 
-    def update_module(self, module: "reax.Module", grad: jt.PyTree, value: float | None = None) -> "Optimizer":
+    def update_module(
+        self, module: "reax.Module", grad: jt.PyTree, value: float | None = None
+    ) -> "Optimizer":
         """Perform an inplace update of the module parameters given the passed gradients.
 
         :return: An instance of this optimizer updated with the new state.
         :rtype: "Optimizer"
         """
         new_params, new_state = _update(
-        self.optimizer,
-        self.state,
-        grad,
-        module.parameters(),
-        value=value  
-    )
+            self.optimizer, self.state, grad, module.parameters(), value=value
+        )
         module.set_parameters(new_params)
         count = getattr(new_state, "gradient_step", self.update_count + 1)
-        
+
         return type(self)(self.optimizer, new_state, count=count)
 
 
 @functools.partial(jax.jit, static_argnames=("optimizer",), donate_argnames="params")
-def _update(optimizer: optax.GradientTransformation, state, grad: dict, params, value: float | None = None):
+def _update(
+    optimizer: optax.GradientTransformation, state, grad: dict, params, value: float | None = None
+):
     """Jax jitted function that performs an optimizer update based on the passed gradients and
     parameters."""
 
     updates, new_state = optimizer.update(grad, state, params=params, value=value)
     params = optax.apply_updates(params, updates)
-    
+
     return params, new_state
 
 
